@@ -17,8 +17,8 @@ const stencilPropsVariants = {
 const stencilProps = ref<Object>(stencilPropsVariants.forceAspect)
 
 const forceDefaultAspect = ref(true)
-function updateAspect() {
-    stencilProps.value = (forceDefaultAspect.value) ? stencilPropsVariants.forceAspect : stencilPropsVariants.freeAspect
+function updateAspect(force: boolean) {
+    stencilProps.value = (force) ? stencilPropsVariants.forceAspect : stencilPropsVariants.freeAspect
     cropperInstance.value?.refresh()
 }
 
@@ -96,6 +96,12 @@ function onFileChange(event: Event) {
     file.value = files[0]
 }
 
+function maximize(){
+    forceDefaultAspect.value = false
+    updateAspect(false)
+    cropperInstance.value?.setCoordinates(({imageSize}) => imageSize)
+}
+
 </script>
 
 <template>
@@ -110,13 +116,14 @@ function onFileChange(event: Event) {
 
                 <hr>
 
-                <div class="form-check">
+                <div class="form-check my-1">
                     <input class="form-check-input" type="checkbox" value="" id="forceDefaultAspectCheck"
-                        v-model="forceDefaultAspect" @change="updateAspect">
+                        v-model="forceDefaultAspect" @change="updateAspect(forceDefaultAspect)">
                     <label class="form-check-label" for="forceDefaultAspectCheck">
                         force 4:3
                     </label>
                 </div>
+                <button class="btn btn-primary my-1" @click="maximize">maximize</button>
 
                 <hr>
 
