@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { AspectRatio, Coordinates, Cropper, Size, SizeRestrictions } from 'vue-advanced-cropper'
+import DropZone from './DropZone.vue';
 
 const cropperInstance = ref<InstanceType<typeof Cropper>>();
 const src = ref('')
@@ -82,8 +83,7 @@ async function doit() {
     }
 }
 
-function onFileChange(event: Event) {
-    const { files } = event.target as HTMLInputElement
+function changeFile(files: FileList | undefined) {
     if (!files) {
         return
     }
@@ -101,7 +101,6 @@ function maximize(){
     updateAspect(false)
     cropperInstance.value?.setCoordinates(({imageSize}) => imageSize)
 }
-
 </script>
 
 <template>
@@ -112,10 +111,6 @@ function maximize(){
                     :default-size="calcSize" :canvas="false" />
             </div>
             <div class="col">
-                <input type="file" class="form-control" @change="onFileChange">
-
-                <hr>
-
                 <div class="form-check my-1">
                     <input class="form-check-input" type="checkbox" value="" id="forceDefaultAspectCheck"
                         v-model="forceDefaultAspect" @change="updateAspect(forceDefaultAspect)">
@@ -135,4 +130,5 @@ function maximize(){
             </div>
         </div>
     </main>
+    <DropZone @file="changeFile" :force="!file"/>
 </template>
