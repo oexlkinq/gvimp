@@ -22,7 +22,7 @@ var ffs embed.FS
 const address = "localhost:12313"
 const fileheapFolderName = "fileheap"
 
-var formMaxSize = int64(20 * math.Pow(2, 20))
+var formMaxSize = int64(math.Pow(2, 30))
 
 func main() {
 	http.HandleFunc("/api/thumbnail", func(w http.ResponseWriter, r *http.Request) {
