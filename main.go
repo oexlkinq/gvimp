@@ -26,14 +26,14 @@ var formMaxSize = int64(math.Pow(2, 30))
 
 func main() {
 	http.HandleFunc("/api/thumbnail", func(w http.ResponseWriter, r *http.Request) {
-		onerr := func(err error, where string) {
-			fmt.Printf("thumbnail#%s# %s\n", where, err)
+		onerr := func(err error) {
+			fmt.Printf("thumbnail#%s\n", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 
 		err := r.ParseMultipartForm(formMaxSize)
 		if err != nil {
-			onerr(err, "parse multipart form")
+			onerr(fmt.Errorf("parse multipart form: %w", err))
 			return
 		}
 
@@ -42,88 +42,33 @@ func main() {
 		for i, key := range keys {
 			extractRect[i], err = strconv.Atoi(r.Form.Get(key))
 			if err != nil {
-				onerr(err, "bad value in "+key)
+				onerr(fmt.Errorf("bad value in \"%v\": %w", key, err))
 				return
 			}
 		}
 
 		file, _, err := r.FormFile("img")
 		if err != nil {
-			onerr(err, "get form file")
+			onerr(fmt.Errorf("get form file: %w", err))
 			return
 		}
 
-		// начало обработки изображения
-		buffer, err := io.ReadAll(file)
+		imgBuf, err := io.ReadAll(file)
 		if err != nil {
-			onerr(err, "io read all")
+			onerr(fmt.Errorf("read form image to buf: %w", err))
 			return
 		}
 
-		baseImg, err := bimg.NewImage(buffer).Extract(extractRect[0], extractRect[1], extractRect[2], extractRect[3])
+		finalImg, err := Thumbnail(imgBuf, ExtractRect{extractRect[0], extractRect[1], extractRect[2], extractRect[3]})
 		if err != nil {
-			onerr(err, "bimg extract")
-			return
-		}
-
-		fg := bimg.NewImage(baseImg)
-
-		size, err := fg.Size()
-		if err != nil {
-			onerr(err, "fg size")
-			return
-		}
-
-		width := float64(size.Width)
-		height := float64(size.Height)
-		top := 0.
-		left := 0.
-
-		if width > height {
-			height = height * (400 / width)
-			width = 400
-			top = (300 - height) / 2
-		} else {
-			width = width * (300 / height)
-			height = 300
-			left = (400 - width) / 2
-		}
-
-		wm, err := fg.Process(bimg.Options{
-			Width:   int(width),
-			Height:  int(height),
-			Enlarge: true,
-		})
-		if err != nil {
-			onerr(err, "fg resize")
-			return
-		}
-
-		bg := bimg.NewImage(baseImg)
-
-		finalImg, err := bg.Process(bimg.Options{
-			Width:        400,
-			Height:       300,
-			Gravity:      bimg.GravityCentre,
-			GaussianBlur: bimg.GaussianBlur{Sigma: 15},
-			Crop:         true,
-			Quality:      95,
-			Enlarge:      true,
-			WatermarkImage: bimg.WatermarkImage{
-				Left: int(left),
-				Top:  int(top),
-				Buf:  wm,
-			},
-		})
-		if err != nil {
-			onerr(err, "bg process")
+			onerr(fmt.Errorf("run thumbnailer: %w", err))
 			return
 		}
 
 		imgId := time.Now().UnixMilli()
 		err = bimg.Write(makeImgPath(imgId), finalImg)
 		if err != nil {
-			onerr(err, "write result")
+			onerr(fmt.Errorf("write result: %w", err))
 			return
 		}
 
